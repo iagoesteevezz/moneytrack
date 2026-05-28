@@ -5,7 +5,8 @@ import styles from './AppLayout.module.css'
 const NAV = [
   { to: '/',             label: 'Dashboard',      icon: '📊' },
   { to: '/transactions', label: 'Transacciones',  icon: '💸' },
-  { to: '/insights',     label: 'IA Insights',    icon: '✨' },
+  { to: '/budgets',      label: 'Presupuestos',   icon: '🎯' },
+  { to: '/insights',    label: 'IA Insights',    icon: '✨' },
   { to: '/profile',      label: 'Perfil',         icon: '👤' },
 ]
 

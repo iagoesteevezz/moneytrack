@@ -61,16 +61,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
   const from = threeMonthsAgo.toISOString().slice(0, 10)
 
-  const { data, error } = await ctx.supabase
-    .from('transactions')
-    .select('type, amount, date, category:categories(name)')
-    .gte('date', from)
-    .order('date', { ascending: true })
+  // Fetch transactions and current month budgets in parallel
+  const currentMonth = new Date().toISOString().slice(0, 7)
 
+  const [txResult, budgetResult] = await Promise.all([
+    ctx.supabase
+      .from('transactions')
+      .select('type, amount, date, category:categories(name)')
+      .gte('date', from)
+      .order('date', { ascending: true }),
+    ctx.supabase
+      .from('budgets')
+      .select('amount, category:categories(name)')
+      .eq('user_id', ctx.userId)
+      .eq('period', 'monthly'),
+  ])
+
+  const { data, error } = txResult
   if (error) {
     res.status(500).json({ data: null, error: { message: error.message } })
     return
   }
+
+  // Format budget context for the prompt
+  const budgetLines = budgetResult.data && (budgetResult.data as any[]).length > 0
+    ? '\n## Presupuestos mensuales configurados por el usuario\n' +
+      (budgetResult.data as any[])
+        .map((b: any) => `- ${b.category?.name ?? 'Sin nombre'}: límite ${Number(b.amount)} EUR/mes`)
+        .join('\n')
+    : ''
 
   const rows = (data as any[]).map(r => ({
     type: r.type,
@@ -98,9 +117,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const prompt = `Eres un asesor financiero personal experto. Analiza los siguientes datos de finanzas personales y genera entre 4 y 6 insights accionables.
 
 ## Datos históricos (últimos ${history.months.length} meses)
-${formattedHistory}
+${formattedHistory}${budgetLines}
 
 ## Instrucciones
+- Si el usuario tiene presupuestos configurados, prioriza insights sobre categorías que los superan o están cerca de hacerlo
 - "anomaly": gasto inusualmente alto o bajo respecto a la media del historial
 - "trend": patrón sostenido durante 2+ meses (creciente o decreciente)
 - "suggestion": acción concreta y específica que el usuario puede tomar

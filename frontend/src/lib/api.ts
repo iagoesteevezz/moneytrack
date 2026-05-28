@@ -87,6 +87,23 @@ export interface StatsSummary {
   breakdown: { income: CategoryBreakdown[]; expense: CategoryBreakdown[] }
 }
 
+// ── Budget types ──────────────────────────────────────────────
+
+export interface BudgetWithProgress {
+  id: string
+  categoryId: string
+  categoryName: string
+  categoryIcon: string | null
+  categoryColor: string | null
+  amount: number
+  spent: number
+  remaining: number
+  percentage: number
+  period: 'monthly'
+  createdAt: string
+  updatedAt: string
+}
+
 // ── AI types ─────────────────────────────────────────────────
 
 export interface Insight {
@@ -186,6 +203,19 @@ export const api = {
       const qs = month ? `?month=${month}` : ''
       return request<StatsSummary>(`/api/stats/summary${qs}`)
     },
+  },
+
+  budgets: {
+    list: (month?: string) => {
+      const qs = month ? `?month=${month}` : ''
+      return request<BudgetWithProgress[]>(`/api/budgets${qs}`)
+    },
+    upsert: (body: { categoryId: string; amount: number }) =>
+      request<BudgetWithProgress>('/api/budgets', { method: 'POST', body: JSON.stringify(body) }),
+    delete: async (id: string) => fetch(`/api/budgets?id=${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: await getAuthHeader() },
+    }).then(r => { if (!r.ok && r.status !== 204) throw new Error(`HTTP ${r.status}`) }),
   },
 
   ai: {
