@@ -1,0 +1,151 @@
+/* ── Shell ────────────────────────────────────────────────── */
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f9fafb;
+  font-family: system-ui, sans-serif;
+}
+
+/* ── Sidebar (desktop ≥ 768px) ───────────────────────────── */
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+@media (max-width: 767px) {
+  .sidebar { display: none; }
+}
+
+.brand {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  padding: 0 0.5rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 1rem;
+}
+
+/* ── Nav links ────────────────────────────────────────────── */
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-decoration: none;
+  transition: background .12s, color .12s;
+}
+
+.navLink:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.navLinkActive {
+  background: #eef2ff;
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.navIcon { font-size: 1.1rem; }
+
+/* ── Sidebar footer ───────────────────────────────────────── */
+.sidebarFooter {
+  border-top: 1px solid #f3f4f6;
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.userEmail {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signOutBtn {
+  font-size: 0.82rem;
+  color: #6366f1;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s;
+}
+
+.signOutBtn:hover { background: #f3f4f6; }
+
+/* ── Main ─────────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  /* room for mobile bottom nav */
+  padding-bottom: 72px;
+}
+
+@media (min-width: 768px) {
+  .main { padding-bottom: 0; }
+}
+
+/* ── Bottom nav (mobile < 768px) ─────────────────────────── */
+.bottomNav {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .bottomNav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    z-index: 50;
+  }
+}
+
+.bottomNavLink {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.6rem 0;
+  text-decoration: none;
+  color: #9ca3af;
+  font-size: 0.7rem;
+  font-weight: 500;
+  transition: color .12s;
+}
+
+.bottomNavLinkActive {
+  color: #6366f1;
+}
+
+.bottomNavIcon { font-size: 1.25rem; }
+.bottomNavLabel { font-size: 0.68rem; }
