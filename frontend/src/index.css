@@ -1,13 +1,93 @@
-*, *::before, *::after { box-sizing: border-box; }
+/* ── Reset ────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  background: #f9fafb;
-  color: #111827;
-  -webkit-font-smoothing: antialiased;
+/* ── Design tokens ───────────────────────────────────────── */
+:root {
+  /* Palette */
+  --color-bg:          #f4f5f7;
+  --color-surface:     #ffffff;
+  --color-surface-2:   #f8f9fb;
+  --color-border:      #e8eaed;
+  --color-border-2:    #d1d5db;
+
+  /* Sidebar */
+  --color-sidebar-bg:       #0f1117;
+  --color-sidebar-text:     #8b8fa8;
+  --color-sidebar-active:   #ffffff;
+  --color-sidebar-hover-bg: rgba(255,255,255,.06);
+  --color-sidebar-active-bg:rgba(255,255,255,.10);
+  --color-sidebar-border:   rgba(255,255,255,.07);
+
+  /* Brand */
+  --color-brand:       #4f6ef7;
+  --color-brand-hover: #3d5ce4;
+  --color-brand-light: #eef1fe;
+
+  /* Semantic */
+  --color-income:      #10b981;
+  --color-income-bg:   #ecfdf5;
+  --color-expense:     #ef4444;
+  --color-expense-bg:  #fef2f2;
+  --color-warning:     #f59e0b;
+  --color-warning-bg:  #fffbeb;
+
+  /* Text */
+  --color-text-primary:   #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted:     #9ca3af;
+  --color-text-disabled:  #d1d5db;
+
+  /* Radius */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+
+  /* Shadow */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:  0 4px 12px rgba(0,0,0,.07);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,.10);
+  --shadow-xl:  0 20px 48px rgba(0,0,0,.16);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-a { color: inherit; }
+/* ── Base ─────────────────────────────────────────────────── */
+html { font-size: 16px; }
 
-button { font-family: inherit; }
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border-2); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+
+/* ── Utility classes ──────────────────────────────────────── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
