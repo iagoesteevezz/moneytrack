@@ -16,6 +16,8 @@ import express from 'express'
 // ── Route handlers (Vercel Functions) ───────────────────────
 import authMe                from './auth/me'
 import authProfile           from './auth/profile'
+import aiInsights            from './ai/insights'
+import aiPredict             from './ai/predict'
 import transactionsIndex     from './transactions/index'
 import transactionById       from './transactions/[id]'
 import categoriesIndex       from './categories/index'
@@ -36,6 +38,8 @@ app.all('/api/transactions',         transactionsIndex as Handler)
 app.all('/api/transactions/:id',     transactionById   as Handler)
 app.all('/api/categories',           categoriesIndex   as Handler)
 app.all('/api/stats/summary',        statsSummary      as Handler)
+app.all('/api/ai/insights',         aiInsights        as Handler)
+app.all('/api/ai/predict',          aiPredict         as Handler)
 
 // ── 404 fallback ─────────────────────────────────────────────
 app.use((_req, res) => {

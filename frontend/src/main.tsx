@@ -10,6 +10,7 @@ import { SignupPage } from '@/pages/SignupPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { InsightsPage } from '@/pages/InsightsPage'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -37,6 +38,7 @@ createRoot(root).render(
               <Route element={<AppLayout />}>
                 <Route path="/"             element={<DashboardPage />} />
                 <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/insights"     element={<InsightsPage />} />
                 <Route path="/profile"      element={<ProfilePage />} />
               </Route>
             </Route>

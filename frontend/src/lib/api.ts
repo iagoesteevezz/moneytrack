@@ -87,6 +87,43 @@ export interface StatsSummary {
   breakdown: { income: CategoryBreakdown[]; expense: CategoryBreakdown[] }
 }
 
+// ── AI types ─────────────────────────────────────────────────
+
+export interface Insight {
+  type: 'anomaly' | 'trend' | 'suggestion' | 'positive'
+  title: string
+  description: string
+  impact: 'high' | 'medium' | 'low'
+  category?: string
+  amount?: number
+}
+
+export interface InsightsResponse {
+  insights: Insight[]
+  summary: string
+  generatedAt: string
+  monthsAnalyzed: number
+}
+
+export interface CategoryPrediction {
+  category: string
+  predictedAmount: number
+  lastMonthAmount: number
+  trend: 'up' | 'down' | 'stable'
+  confidence: 'high' | 'medium' | 'low'
+  reasoning: string
+}
+
+export interface PredictResponse {
+  targetMonth: string
+  predictedTotalExpense: number
+  predictedTotalIncome: number
+  predictedBalance: number
+  categories: CategoryPrediction[]
+  advice: string
+  generatedAt: string
+}
+
 export interface TransactionFilters {
   type?: TransactionType
   category_id?: string
@@ -149,5 +186,10 @@ export const api = {
       const qs = month ? `?month=${month}` : ''
       return request<StatsSummary>(`/api/stats/summary${qs}`)
     },
+  },
+
+  ai: {
+    insights: () => request<InsightsResponse>('/api/ai/insights'),
+    predict:  () => request<PredictResponse>('/api/ai/predict'),
   },
 }
