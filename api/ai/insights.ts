@@ -127,10 +127,10 @@ ${formattedHistory}${budgetLines}
 Sé específico con cantidades en EUR. Usa "category" con el nombre exacto si aplica (o string vacío). Usa "amount" con el importe en EUR (o 0 si no aplica).`
 
   try {
-    const ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' })
+    const ai = new GoogleGenAI({ apiKey })
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
