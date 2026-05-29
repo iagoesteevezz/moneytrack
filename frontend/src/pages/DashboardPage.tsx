@@ -41,12 +41,12 @@ interface MetricCardProps {
   label: string
   value: string
   sub?: string
-  trend?: number      // % change vs last month
+  trend?: number
   accent?: string
 }
 
 function MetricCard({ label, value, sub, trend, accent }: MetricCardProps) {
-  const trendUp = trend !== undefined && trend > 0
+  const trendUp   = trend !== undefined && trend > 0
   const trendDown = trend !== undefined && trend < 0
   return (
     <div className={styles.metricCard}>
@@ -93,10 +93,76 @@ function ChartTooltip({ active, payload, label }: any) {
     <div className={styles.tooltip}>
       <p className={styles.tooltipLabel}>{label}</p>
       {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }}>
-          {p.name}: {fmt(p.value)}
-        </p>
+        <p key={p.name} style={{ color: p.color }}>{p.name}: {fmt(p.value)}</p>
       ))}
+    </div>
+  )
+}
+
+// ── AI sidebar components ────────────────────────────────────
+
+function AIInsightsCard() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['ai', 'insights'],
+    queryFn: () => api.ai.insights(),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  return (
+    <div className={styles.aiCard}>
+      <div className={styles.aiCardHeader}>
+        <div className={styles.aiCardIconWrap}>
+          <Icon name="sparkle" size={13} color="var(--color-brand)" />
+        </div>
+        <span className={styles.aiCardTitle}>Consejo IA</span>
+        <Link to="/insights" className={styles.aiCardLink}>
+          Ver todo <Icon name="arrow-right" size={11} />
+        </Link>
+      </div>
+
+      {isLoading && (
+        <div className={styles.aiLoadingRow}>
+          <div className={styles.spinner} />
+          <span>Analizando...</span>
+        </div>
+      )}
+
+      {isError && (
+        <p className={styles.aiEmptyText}>No se pudo cargar el análisis IA.</p>
+      )}
+
+      {data && (
+        data.insights.length > 0 ? (
+          <div className={styles.aiInsightList}>
+            {data.insights.slice(0, 3).map((ins, i) => (
+              <div key={i} className={styles.aiInsightItem}>
+                <span className={styles.aiInsightDot} style={{
+                  background: ins.impact === 'high' ? 'var(--color-expense)' : ins.impact === 'medium' ? 'var(--color-warning)' : 'var(--color-income)'
+                }} />
+                <div>
+                  <p className={styles.aiInsightTitle}>{ins.title}</p>
+                  <p className={styles.aiInsightDesc}>{ins.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.aiEmptyText}>{data.summary}</p>
+        )
+      )}
+    </div>
+  )
+}
+
+function QuickAddCard() {
+  return (
+    <div className={styles.quickAddCard}>
+      <span className={styles.quickAddLabel}>Acción rápida</span>
+      <Link to="/transactions" className={styles.quickAddBtn}>
+        <Icon name="plus" size={15} />
+        Añadir movimiento
+      </Link>
     </div>
   )
 }
@@ -112,7 +178,6 @@ export function DashboardPage() {
     queryFn: () => api.stats.summary(month),
   })
 
-  // Fetch 6 months of data for the trend chart
   const trendQueries = months6.map(m =>
     useQuery({
       queryKey: ['stats', 'summary', m],
@@ -131,26 +196,20 @@ export function DashboardPage() {
     queryFn: () => api.budgets.list(month),
   })
 
-  // Build trend chart data
   const trendData = months6.map((m, i) => {
     const d = trendQueries[i]?.data
     return {
       month: monthLabel(m),
       Ingresos: d?.summary.totalIncome ?? 0,
       Gastos:   d?.summary.totalExpense ?? 0,
-      Balance:  d?.summary.balance ?? 0,
     }
   })
 
-  // Savings rate = (income - expense) / income
   const savingsRate = stats && stats.summary.totalIncome > 0
     ? ((stats.summary.totalIncome - stats.summary.totalExpense) / stats.summary.totalIncome) * 100
     : 0
 
-  // Top expense categories for mini bar chart
   const topCategories = stats?.breakdown.expense.slice(0, 5) ?? []
-
-  // Budgets in danger
   const warningBudgets = budgets.filter(b => b.percentage >= 80)
 
   const prevMonth = months6[months6.length - 2] ?? ''
@@ -182,124 +241,109 @@ export function DashboardPage() {
           <h1 className={styles.pageTitle}>Resumen financiero</h1>
           <p className={styles.pageSubtitle}>Vista general de tus finanzas personales</p>
         </div>
-        <input
-          type="month"
-          className={styles.monthInput}
-          value={month}
-          max={currentMonth()}
-          onChange={e => setMonth(e.target.value)}
-        />
+        <input type="month" className={styles.monthInput} value={month} max={currentMonth()} onChange={e => setMonth(e.target.value)} />
       </div>
 
-      {/* ── Metric cards ── */}
-      <div className={styles.metricsRow}>
-        <MetricCard
-          label="Balance"
-          value={stats ? fmt(stats.summary.balance) : '—'}
-          accent={stats && stats.summary.balance >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}
-        />
-        <MetricCard
-          label="Ingresos"
-          value={stats ? fmt(stats.summary.totalIncome) : '—'}
-          trend={incomeTrend()}
-          accent="var(--color-income)"
-        />
-        <MetricCard
-          label="Gastos"
-          value={stats ? fmt(stats.summary.totalExpense) : '—'}
-          trend={expenseTrend()}
-          accent="var(--color-expense)"
-        />
-        <MetricCard
-          label="Tasa de ahorro"
-          value={stats ? `${savingsRate.toFixed(1)}%` : '—'}
-          sub="del total de ingresos"
-          accent={savingsRate >= 20 ? 'var(--color-income)' : savingsRate >= 0 ? 'var(--color-warning)' : 'var(--color-expense)'}
-        />
-      </div>
+      {/* ── Two-column layout ── */}
+      <div className={styles.twoCol}>
+        {/* ── Main column ── */}
+        <div className={styles.mainCol}>
+          {/* Metric cards */}
+          <div className={styles.metricsRow}>
+            <MetricCard label="Balance" value={stats ? fmt(stats.summary.balance) : '—'} accent={stats && stats.summary.balance >= 0 ? 'var(--color-income)' : 'var(--color-expense)'} />
+            <MetricCard label="Ingresos" value={stats ? fmt(stats.summary.totalIncome) : '—'} trend={incomeTrend()} accent="var(--color-income)" />
+            <MetricCard label="Gastos" value={stats ? fmt(stats.summary.totalExpense) : '—'} trend={expenseTrend()} accent="var(--color-expense)" />
+            <MetricCard label="Tasa de ahorro" value={stats ? `${savingsRate.toFixed(1)}%` : '—'} sub="del total de ingresos" accent={savingsRate >= 20 ? 'var(--color-income)' : savingsRate >= 0 ? 'var(--color-warning)' : 'var(--color-expense)'} />
+          </div>
 
-      {/* ── Alerts ── */}
-      {warningBudgets.length > 0 && (
-        <div className={styles.alertBanner}>
-          <Icon name="alert" size={16} color="var(--color-warning)" />
-          <span>
-            {warningBudgets.length === 1
-              ? `El presupuesto de "${warningBudgets[0]!.categoryName}" está al ${warningBudgets[0]!.percentage.toFixed(0)}%`
-              : `${warningBudgets.length} presupuestos superan el 80% del límite mensual`}
-          </span>
-          <Link to="/budgets" className={styles.alertLink}>Ver presupuestos <Icon name="arrow-right" size={13} /></Link>
-        </div>
-      )}
+          {/* Alert banner */}
+          {warningBudgets.length > 0 && (
+            <div className={styles.alertBanner}>
+              <Icon name="alert" size={16} color="var(--color-warning)" />
+              <span>
+                {warningBudgets.length === 1
+                  ? `El presupuesto de "${warningBudgets[0]!.categoryName}" está al ${warningBudgets[0]!.percentage.toFixed(0)}%`
+                  : `${warningBudgets.length} presupuestos superan el 80% del límite mensual`}
+              </span>
+              <Link to="/budgets" className={styles.alertLink}>Ver presupuestos <Icon name="arrow-right" size={13} /></Link>
+            </div>
+          )}
 
-      {/* ── Charts row ── */}
-      <div className={styles.chartsRow}>
-        {/* Area chart — 6 months trend */}
-        <div className={styles.chartCard}>
-          <div className={styles.chartCardHeader}>
-            <span className={styles.chartCardTitle}>Evolución 6 meses</span>
-            <div className={styles.legendRow}>
-              <span className={styles.legendDot} style={{ background: 'var(--color-income)' }} /> Ingresos
-              <span className={styles.legendDot} style={{ background: 'var(--color-expense)' }} /> Gastos
+          {/* Charts */}
+          <div className={styles.chartsRow}>
+            <div className={styles.chartCard}>
+              <div className={styles.chartCardHeader}>
+                <span className={styles.chartCardTitle}>Evolución 6 meses</span>
+                <div className={styles.legendRow}>
+                  <span className={styles.legendDot} style={{ background: 'var(--color-income)' }} /> Ingresos
+                  <span className={styles.legendDot} style={{ background: 'var(--color-expense)' }} /> Gastos
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-income)" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="var(--color-income)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-expense)" stopOpacity={0.12} />
+                      <stop offset="95%" stopColor="var(--color-expense)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area type="monotone" dataKey="Ingresos" stroke="var(--color-income)" strokeWidth={2} fill="url(#gradIncome)" dot={false} />
+                  <Area type="monotone" dataKey="Gastos"   stroke="var(--color-expense)" strokeWidth={2} fill="url(#gradExpense)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className={styles.chartCard}>
+              <div className={styles.chartCardHeader}>
+                <span className={styles.chartCardTitle}>Top categorías de gasto</span>
+              </div>
+              {topCategories.length === 0 ? (
+                <p className={styles.chartEmpty}>Sin datos este mes</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={topCategories} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
+                    <YAxis type="category" dataKey="categoryName" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} width={80} />
+                    <Tooltip formatter={(v: number) => fmt(v)} cursor={{ fill: 'var(--color-border)' }} />
+                    <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={14}>
+                      {topCategories.map((c, i) => (
+                        <Cell key={i} fill={c.color ?? 'var(--color-brand)'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-income)" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="var(--color-income)" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-expense)" stopOpacity={0.12} />
-                  <stop offset="95%" stopColor="var(--color-expense)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
-              <Tooltip content={<ChartTooltip />} />
-              <Area type="monotone" dataKey="Ingresos" stroke="var(--color-income)" strokeWidth={2} fill="url(#gradIncome)" dot={false} />
-              <Area type="monotone" dataKey="Gastos"   stroke="var(--color-expense)" strokeWidth={2} fill="url(#gradExpense)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
 
-        {/* Bar chart — top categories */}
-        <div className={styles.chartCard}>
-          <div className={styles.chartCardHeader}>
-            <span className={styles.chartCardTitle}>Top categorías de gasto</span>
+          {/* Recent transactions */}
+          <div className={styles.recentCard}>
+            <div className={styles.recentHeader}>
+              <span className={styles.chartCardTitle}>Últimos movimientos</span>
+              <Link to="/transactions" className={styles.viewAllLink}>
+                Ver todos <Icon name="arrow-right" size={13} />
+              </Link>
+            </div>
+            <div className={styles.txList}>
+              {recentTx?.length === 0 && <p className={styles.chartEmpty}>Sin movimientos registrados</p>}
+              {recentTx?.map(tx => <TxRow key={tx.id} tx={tx} />)}
+            </div>
           </div>
-          {topCategories.length === 0 ? (
-            <p className={styles.chartEmpty}>Sin datos este mes</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={topCategories} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
-                <YAxis type="category" dataKey="categoryName" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} width={80} />
-                <Tooltip formatter={(v: number) => fmt(v)} cursor={{ fill: 'var(--color-border)' }} />
-                <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={14}>
-                  {topCategories.map((c, i) => (
-                    <Cell key={i} fill={c.color ?? 'var(--color-brand)'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
         </div>
-      </div>
 
-      {/* ── Recent transactions ── */}
-      <div className={styles.recentCard}>
-        <div className={styles.recentHeader}>
-          <span className={styles.chartCardTitle}>Últimos movimientos</span>
-          <Link to="/transactions" className={styles.viewAllLink}>
-            Ver todos <Icon name="arrow-right" size={13} />
-          </Link>
-        </div>
-        <div className={styles.txList}>
-          {recentTx?.length === 0 && <p className={styles.chartEmpty}>Sin movimientos registrados</p>}
-          {recentTx?.map(tx => <TxRow key={tx.id} tx={tx} />)}
-        </div>
+        {/* ── Right sidebar ── */}
+        <aside className={styles.sideCol}>
+          <AIInsightsCard />
+          <QuickAddCard />
+        </aside>
       </div>
     </div>
   )

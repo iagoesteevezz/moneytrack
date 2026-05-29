@@ -1,6 +1,6 @@
 .page {
   padding: 28px 28px 40px;
-  max-width: 1100px;
+  max-width: 1200px;
 }
 
 /* ── Header ───────────────────────────────────────────────── */
@@ -41,7 +41,6 @@
   white-space: nowrap;
   transition: opacity 0.15s;
 }
-
 .primaryBtn:hover { opacity: 0.88; }
 
 /* ── Toolbar ──────────────────────────────────────────────── */
@@ -74,7 +73,6 @@
   font-size: 0.875rem;
   color: var(--color-text-primary);
 }
-
 .searchInput::placeholder { color: var(--color-text-muted); }
 
 .clearSearch {
@@ -85,9 +83,7 @@
   cursor: pointer;
   color: var(--color-text-muted);
   padding: 0;
-  line-height: 1;
 }
-
 .clearSearch:hover { color: var(--color-text-primary); }
 
 .filters {
@@ -109,7 +105,6 @@
   outline: none;
   cursor: pointer;
 }
-
 .filterSelect:focus,
 .filterDate:focus { border-color: var(--color-brand); }
 
@@ -129,7 +124,6 @@
   white-space: nowrap;
   transition: border-color 0.15s, color 0.15s;
 }
-
 .exportBtn:hover { border-color: var(--color-brand); color: var(--color-brand); }
 .exportBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -147,37 +141,60 @@
   flex-wrap: wrap;
 }
 
-.summaryCount {
-  color: var(--color-text-muted);
-  font-weight: 500;
-}
+.summaryCount  { color: var(--color-text-muted); font-weight: 500; }
 
 .summaryIncome {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--color-income);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 4px;
+  color: var(--color-income); font-weight: 600; font-variant-numeric: tabular-nums;
 }
-
 .summaryExpense {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--color-expense);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 4px;
+  color: var(--color-expense); font-weight: 600; font-variant-numeric: tabular-nums;
 }
-
 .summaryBalance {
-  margin-left: auto;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-variant-numeric: tabular-nums;
 }
-
 .positive { color: var(--color-income); }
 .negative { color: var(--color-expense); }
+
+/* Donut inline in summary strip */
+.summaryDonut {
+  margin-left: auto;
+}
+
+.donutWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.donutLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.donutLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+}
+
+.donutDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donutPct {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
 
 /* ── Table ────────────────────────────────────────────────── */
 .tableWrap {
@@ -204,9 +221,7 @@
   font-size: 0.875rem;
 }
 
-.table thead tr {
-  border-bottom: 1px solid var(--color-border);
-}
+.table thead tr { border-bottom: 1px solid var(--color-border); }
 
 .table th {
   padding: 11px 16px;
@@ -218,7 +233,6 @@
   color: var(--color-text-muted);
   white-space: nowrap;
 }
-
 .thRight { text-align: right; }
 
 .tableRow {
@@ -226,30 +240,17 @@
   cursor: pointer;
   transition: background 0.1s;
 }
-
 .tableRow:last-child { border-bottom: none; }
 .tableRow:hover { background: var(--color-surface-2); }
 
-.table td {
-  padding: 13px 16px;
-  vertical-align: middle;
-}
+.table td { padding: 13px 16px; vertical-align: middle; }
 
-.tdDate {
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
+.tdDate { color: var(--color-text-muted); font-size: 0.8rem; white-space: nowrap; }
 .tdDesc {
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text-primary);
-  font-weight: 500;
+  max-width: 260px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--color-text-primary); font-weight: 500;
 }
-
 .tdCat { white-space: nowrap; }
 
 .catChip {
@@ -274,7 +275,6 @@
   font-weight: 600;
   white-space: nowrap;
 }
-
 .typeBadgeIncome  { background: var(--color-income-bg);  color: var(--color-income); }
 .typeBadgeExpense { background: var(--color-expense-bg); color: var(--color-expense); }
 
@@ -284,7 +284,6 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-
 .amountIncome  { color: var(--color-income); }
 .amountExpense { color: var(--color-text-primary); }
 
@@ -294,104 +293,62 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: none;
-  background: none;
+  width: 30px; height: 30px;
+  border: none; background: none;
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   cursor: pointer;
   transition: background 0.1s, color 0.1s;
 }
-
 .iconBtn:hover { background: var(--color-surface-2); color: var(--color-text-primary); }
 
 /* ── Modal ────────────────────────────────────────────────── */
 .overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 16px;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 16px;
   backdrop-filter: blur(2px);
 }
-
 .modal {
   background: var(--color-surface);
   border-radius: var(--radius-xl);
-  width: 100%;
-  max-width: 440px;
+  width: 100%; max-width: 440px;
   box-shadow: var(--shadow-xl);
   overflow: hidden;
 }
-
 .modalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 18px 22px 0;
 }
+.modalTitle { font-size: 1rem; font-weight: 700; color: var(--color-text-primary); }
 
-.modalTitle {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-/* ── Form ─────────────────────────────────────────────────── */
 .form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: flex; flex-direction: column; gap: 14px;
   padding: 18px 22px 22px;
 }
-
 .typeToggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
   background: var(--color-surface-2);
-  border-radius: var(--radius-md);
-  padding: 4px;
+  border-radius: var(--radius-md); padding: 4px;
 }
-
 .typeBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px;
-  border: none;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px; border: none;
   border-radius: calc(var(--radius-md) - 2px);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  font-size: 0.875rem; font-weight: 500;
+  color: var(--color-text-muted); background: transparent;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
 }
-
 .typeBtnIncomeActive  { background: var(--color-income-bg);  color: var(--color-income);  font-weight: 600; }
 .typeBtnExpenseActive { background: var(--color-expense-bg); color: var(--color-expense); font-weight: 600; }
 
-.formGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 .label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted);
 }
-
 .input {
   padding: 9px 12px;
   border: 1px solid var(--color-border);
@@ -399,63 +356,38 @@
   font-size: 0.875rem;
   color: var(--color-text-primary);
   background: var(--color-surface);
-  outline: none;
-  width: 100%;
-  box-sizing: border-box;
+  outline: none; width: 100%; box-sizing: border-box;
   transition: border-color 0.15s;
 }
-
 .input:focus { border-color: var(--color-brand); }
 
 .formError {
-  font-size: 0.8rem;
-  color: var(--color-expense);
+  font-size: 0.8rem; color: var(--color-expense);
   background: var(--color-expense-bg);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
+  border-radius: var(--radius-md); padding: 8px 12px;
 }
-
-.modalActions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 4px;
-}
+.modalActions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 4px; }
 
 .deleteBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 9px 14px;
   border: 1px solid var(--color-expense);
   border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-expense);
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-right: auto;
+  background: transparent; color: var(--color-expense);
+  font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-right: auto;
   transition: background 0.15s;
 }
-
 .deleteBtn:hover { background: var(--color-expense-bg); }
 .deleteBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .submitBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 9px 20px;
-  background: var(--color-brand);
-  color: #fff;
-  border: none;
+  background: var(--color-brand); color: #fff; border: none;
   border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
+  font-size: 0.875rem; font-weight: 600; cursor: pointer;
   transition: opacity 0.15s;
 }
-
 .submitBtn:hover { opacity: 0.88; }
 .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -463,9 +395,8 @@
 @media (max-width: 700px) {
   .page { padding: 16px 16px 32px; }
   .toolbar { flex-direction: column; align-items: stretch; }
-  .searchWrap { min-width: unset; }
-  .filters { flex-wrap: wrap; }
   .formGrid { grid-template-columns: 1fr; }
+  .summaryDonut { display: none; }
   .table th:nth-child(3),
   .table td:nth-child(3),
   .table th:nth-child(4),

@@ -3,9 +3,7 @@ import { GoogleGenAI, Type } from '@google/genai'
 import { requireAuth, allowMethods } from '../../lib/supabase/auth'
 import { aggregateHistory, formatHistoryForPrompt } from '../../lib/ai/aggregator'
 
-const ai = new GoogleGenAI({ apiKey: process.env['GEMINI_API_KEY']! })
-
-// ── Response types ────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────
 
 export interface CategoryPrediction {
   category: string
@@ -26,7 +24,7 @@ export interface PredictResponse {
   generatedAt: string
 }
 
-// ── Gemini response schema ────────────────────────────────────
+// ── Gemini schema ─────────────────────────────────────────────
 
 const predictSchema = {
   type: Type.OBJECT,
@@ -40,12 +38,12 @@ const predictSchema = {
       items: {
         type: Type.OBJECT,
         properties: {
-          category:          { type: Type.STRING },
-          predictedAmount:   { type: Type.NUMBER },
-          lastMonthAmount:   { type: Type.NUMBER },
-          trend:             { type: Type.STRING, enum: ['up', 'down', 'stable'] },
-          confidence:        { type: Type.STRING, enum: ['high', 'medium', 'low'] },
-          reasoning:         { type: Type.STRING },
+          category:        { type: Type.STRING },
+          predictedAmount: { type: Type.NUMBER },
+          lastMonthAmount: { type: Type.NUMBER },
+          trend:           { type: Type.STRING },
+          confidence:      { type: Type.STRING },
+          reasoning:       { type: Type.STRING },
         },
         required: ['category', 'predictedAmount', 'lastMonthAmount', 'trend', 'confidence', 'reasoning'],
       },
@@ -61,6 +59,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const ctx = await requireAuth(req, res)
   if (!ctx) return
+
+  const apiKey = process.env['GEMINI_API_KEY']
+  if (!apiKey) {
+    res.status(500).json({ data: null, error: { message: 'GEMINI_API_KEY not configured' } })
+    return
+  }
 
   const now = new Date()
   const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
@@ -112,41 +116,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 ## Historial financiero
 ${formattedHistory}
 
-## Reglas de predicción
-- Solo incluye en "categories" las categorías de GASTOS que aparezcan en el historial
-- "high" confidence: la categoría tiene datos en 3+ meses
-- "medium" confidence: datos en 2 meses
-- "low" confidence: solo 1 mes de datos
-- "stable" si la variación intermensual es < 10%
-- Pondera más los meses recientes (peso decreciente hacia atrás)
-- "lastMonthAmount" debe ser el importe real del mes más reciente disponible para esa categoría
-- Todos los importes en EUR
-- No inventes categorías que no estén en el historial`
+## Reglas
+- Solo incluye en "categories" las categorías de GASTOS del historial
+- "high" confidence: datos en 3+ meses. "medium": 2 meses. "low": 1 mes
+- "stable" si variación intermensual < 10%
+- Pondera más los meses recientes
+- Todos los importes en EUR`
 
   try {
+    const ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' })
+
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: predictSchema,
-        temperature: 0.2,   // muy bajo — queremos números, no creatividad
+        temperature: 0.2,
         maxOutputTokens: 1024,
       },
     })
 
-    const parsed = JSON.parse(response.text ?? '{}') as Omit<PredictResponse, 'targetMonth' | 'generatedAt'>
+    const text = response.text ?? '{}'
+    const parsed = JSON.parse(text) as Omit<PredictResponse, 'targetMonth' | 'generatedAt'>
+
+    const validTrends      = new Set(['up', 'down', 'stable'])
+    const validConfidences = new Set(['high', 'medium', 'low'])
+
+    const categories: CategoryPrediction[] = (parsed.categories ?? []).map((c: any) => ({
+      category:        String(c.category ?? ''),
+      predictedAmount: Number(c.predictedAmount ?? 0),
+      lastMonthAmount: Number(c.lastMonthAmount ?? 0),
+      trend:           validTrends.has(c.trend)           ? c.trend      : 'stable',
+      confidence:      validConfidences.has(c.confidence) ? c.confidence : 'medium',
+      reasoning:       String(c.reasoning ?? ''),
+    }))
 
     res.status(200).json({
       data: {
-        ...parsed,
         targetMonth,
+        predictedTotalExpense: Number(parsed.predictedTotalExpense ?? 0),
+        predictedTotalIncome:  Number(parsed.predictedTotalIncome  ?? 0),
+        predictedBalance:      Number(parsed.predictedBalance       ?? 0),
+        advice:                String(parsed.advice ?? ''),
+        categories,
         generatedAt: new Date().toISOString(),
       } satisfies PredictResponse,
       error: null,
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'AI error'
-    res.status(500).json({ data: null, error: { message: `AI processing failed: ${message}` } })
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[ai/predict] Gemini error:', message)
+    res.status(500).json({ data: null, error: { message: `AI error: ${message}` } })
   }
 }

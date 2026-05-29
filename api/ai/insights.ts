@@ -3,17 +3,15 @@ import { GoogleGenAI, Type } from '@google/genai'
 import { requireAuth, allowMethods } from '../../lib/supabase/auth'
 import { aggregateHistory, formatHistoryForPrompt } from '../../lib/ai/aggregator'
 
-const ai = new GoogleGenAI({ apiKey: process.env['GEMINI_API_KEY']! })
-
-// ── Response types ────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────
 
 export interface Insight {
   type: 'anomaly' | 'trend' | 'suggestion' | 'positive'
   title: string
   description: string
   impact: 'high' | 'medium' | 'low'
-  category: string    // empty string if not applicable
-  amount: number      // 0 if not applicable
+  category: string
+  amount: number
 }
 
 export interface InsightsResponse {
@@ -23,8 +21,7 @@ export interface InsightsResponse {
   monthsAnalyzed: number
 }
 
-// ── Gemini response schema ────────────────────────────────────
-// Gemini validates this server-side — no JSON.parse needed.
+// ── Gemini schema ─────────────────────────────────────────────
 
 const insightsSchema = {
   type: Type.OBJECT,
@@ -35,10 +32,10 @@ const insightsSchema = {
       items: {
         type: Type.OBJECT,
         properties: {
-          type:        { type: Type.STRING, enum: ['anomaly', 'trend', 'suggestion', 'positive'] },
+          type:        { type: Type.STRING },
           title:       { type: Type.STRING },
           description: { type: Type.STRING },
-          impact:      { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+          impact:      { type: Type.STRING },
           category:    { type: Type.STRING },
           amount:      { type: Type.NUMBER },
         },
@@ -57,12 +54,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const ctx = await requireAuth(req, res)
   if (!ctx) return
 
+  // Guard: API key must exist
+  const apiKey = process.env['GEMINI_API_KEY']
+  if (!apiKey) {
+    res.status(500).json({ data: null, error: { message: 'GEMINI_API_KEY not configured' } })
+    return
+  }
+
   const threeMonthsAgo = new Date()
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
   const from = threeMonthsAgo.toISOString().slice(0, 10)
-
-  // Fetch transactions and current month budgets in parallel
-  const currentMonth = new Date().toISOString().slice(0, 7)
 
   const [txResult, budgetResult] = await Promise.all([
     ctx.supabase
@@ -77,21 +78,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       .eq('period', 'monthly'),
   ])
 
-  const { data, error } = txResult
-  if (error) {
-    res.status(500).json({ data: null, error: { message: error.message } })
+  if (txResult.error) {
+    res.status(500).json({ data: null, error: { message: txResult.error.message } })
     return
   }
 
-  // Format budget context for the prompt
-  const budgetLines = budgetResult.data && (budgetResult.data as any[]).length > 0
-    ? '\n## Presupuestos mensuales configurados por el usuario\n' +
-      (budgetResult.data as any[])
-        .map((b: any) => `- ${b.category?.name ?? 'Sin nombre'}: límite ${Number(b.amount)} EUR/mes`)
-        .join('\n')
-    : ''
-
-  const rows = (data as any[]).map(r => ({
+  const rows = (txResult.data as any[]).map(r => ({
     type: r.type,
     amount: r.amount,
     date: r.date,
@@ -111,49 +103,71 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return
   }
 
+  const budgetLines = budgetResult.data && (budgetResult.data as any[]).length > 0
+    ? '\n## Presupuestos mensuales\n' +
+      (budgetResult.data as any[]).map((b: any) =>
+        `- ${b.category?.name ?? 'Sin nombre'}: límite ${Number(b.amount)} EUR/mes`
+      ).join('\n')
+    : ''
+
   const history = aggregateHistory(rows)
   const formattedHistory = formatHistoryForPrompt(history)
 
-  const prompt = `Eres un asesor financiero personal experto. Analiza los siguientes datos de finanzas personales y genera entre 4 y 6 insights accionables.
+  const prompt = `Eres un asesor financiero personal experto. Analiza los datos financieros del usuario y genera entre 4 y 6 insights accionables.
 
 ## Datos históricos (últimos ${history.months.length} meses)
 ${formattedHistory}${budgetLines}
 
-## Instrucciones
-- Si el usuario tiene presupuestos configurados, prioriza insights sobre categorías que los superan o están cerca de hacerlo
-- "anomaly": gasto inusualmente alto o bajo respecto a la media del historial
-- "trend": patrón sostenido durante 2+ meses (creciente o decreciente)
-- "suggestion": acción concreta y específica que el usuario puede tomar
-- "positive": logro financiero que vale la pena destacar
+## Tipos de insight
+- "anomaly": gasto inusualmente alto respecto a la media
+- "trend": patrón sostenido durante 2+ meses
+- "suggestion": acción concreta que el usuario puede tomar
+- "positive": logro financiero destacable
 
-Sé específico con cantidades en EUR. Usa el campo "category" con el nombre exacto de la categoría si el insight es sobre una categoría concreta (o string vacío si es general). Usa "amount" con el importe relevante en EUR (o 0 si no aplica). No inventes datos que no estén en el historial.`
+Sé específico con cantidades en EUR. Usa "category" con el nombre exacto si aplica (o string vacío). Usa "amount" con el importe en EUR (o 0 si no aplica).`
 
   try {
+    const ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' })
+
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: insightsSchema,
-        temperature: 0.3,    // lower = more factual, less creative
+        temperature: 0.3,
         maxOutputTokens: 1024,
       },
     })
 
-    // With responseSchema + responseMimeType, .text is guaranteed valid JSON
-    const parsed = JSON.parse(response.text ?? '{}') as { summary: string; insights: Insight[] }
+    const text = response.text ?? '{}'
+    const parsed = JSON.parse(text) as { summary: string; insights: Insight[] }
+
+    // Normalize type/impact values defensively
+    const validTypes   = new Set(['anomaly', 'trend', 'suggestion', 'positive'])
+    const validImpacts = new Set(['high', 'medium', 'low'])
+
+    const insights: Insight[] = (parsed.insights ?? []).map((ins: any) => ({
+      type:        validTypes.has(ins.type)   ? ins.type   : 'suggestion',
+      title:       String(ins.title       ?? ''),
+      description: String(ins.description ?? ''),
+      impact:      validImpacts.has(ins.impact) ? ins.impact : 'medium',
+      category:    String(ins.category ?? ''),
+      amount:      Number(ins.amount   ?? 0),
+    }))
 
     res.status(200).json({
       data: {
-        insights: parsed.insights,
-        summary: parsed.summary,
+        insights,
+        summary: String(parsed.summary ?? ''),
         generatedAt: new Date().toISOString(),
         monthsAnalyzed: history.months.length,
       } satisfies InsightsResponse,
       error: null,
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'AI error'
-    res.status(500).json({ data: null, error: { message: `AI processing failed: ${message}` } })
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[ai/insights] Gemini error:', message)
+    res.status(500).json({ data: null, error: { message: `AI error: ${message}` } })
   }
 }
