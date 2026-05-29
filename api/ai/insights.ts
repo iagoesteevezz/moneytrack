@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { GoogleGenAI, Type } from '@google/genai'
 import { requireAuth, allowMethods } from '../../lib/supabase/auth'
 import { aggregateHistory, formatHistoryForPrompt } from '../../lib/ai/aggregator'
+import { getCachedAI, setCachedAI } from '../../lib/ai/cache'
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -53,6 +54,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const ctx = await requireAuth(req, res)
   if (!ctx) return
+
+  // ── Cache lookup (bypass with ?force=1) ───────────────────────
+  const force = req.query.force === '1'
+  if (!force) {
+    const cached = await getCachedAI<InsightsResponse>(ctx.supabase, ctx.userId, 'insights')
+    if (cached) {
+      console.log('[insights] serving from cache')
+      res.status(200).json({ data: cached, error: null, cached: true })
+      return
+    }
+  }
 
   // Guard: API key must exist
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
@@ -133,7 +145,7 @@ Sé específico con cantidades en EUR. Usa "category" con el nombre exacto si ap
     console.log('[gemini] SDK initialized, calling generateContent...')
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-lite',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -159,15 +171,16 @@ Sé específico con cantidades en EUR. Usa "category" con el nombre exacto si ap
       amount:      Number(ins.amount   ?? 0),
     }))
 
-    res.status(200).json({
-      data: {
-        insights,
-        summary: String(parsed.summary ?? ''),
-        generatedAt: new Date().toISOString(),
-        monthsAnalyzed: history.months.length,
-      } satisfies InsightsResponse,
-      error: null,
-    })
+    const responseData: InsightsResponse = {
+      insights,
+      summary: String(parsed.summary ?? ''),
+      generatedAt: new Date().toISOString(),
+      monthsAnalyzed: history.months.length,
+    }
+
+    await setCachedAI(ctx.supabase, ctx.userId, 'insights', responseData)
+
+    res.status(200).json({ data: responseData, error: null, cached: false })
   } catch (err: any) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('❌ Error en la llamada a Gemini:', err)

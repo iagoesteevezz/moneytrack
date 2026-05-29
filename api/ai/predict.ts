@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { GoogleGenAI, Type } from '@google/genai'
 import { requireAuth, allowMethods } from '../../lib/supabase/auth'
 import { aggregateHistory, formatHistoryForPrompt } from '../../lib/ai/aggregator'
+import { getCachedAI, setCachedAI } from '../../lib/ai/cache'
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -59,6 +60,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const ctx = await requireAuth(req, res)
   if (!ctx) return
+
+  // ── Cache lookup (bypass with ?force=1) ───────────────────────
+  const force = req.query.force === '1'
+  if (!force) {
+    const cached = await getCachedAI<PredictResponse>(ctx.supabase, ctx.userId, 'predict')
+    if (cached) {
+      console.log('[predict] serving from cache')
+      res.status(200).json({ data: cached, error: null, cached: true })
+      return
+    }
+  }
 
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
   console.log('[gemini] apiKey present:', !!apiKey)
@@ -130,7 +142,7 @@ ${formattedHistory}
     console.log('[gemini] SDK initialized, calling generateContent...')
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-lite',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -155,18 +167,19 @@ ${formattedHistory}
       reasoning:       String(c.reasoning ?? ''),
     }))
 
-    res.status(200).json({
-      data: {
-        targetMonth,
-        predictedTotalExpense: Number(parsed.predictedTotalExpense ?? 0),
-        predictedTotalIncome:  Number(parsed.predictedTotalIncome  ?? 0),
-        predictedBalance:      Number(parsed.predictedBalance       ?? 0),
-        advice:                String(parsed.advice ?? ''),
-        categories,
-        generatedAt: new Date().toISOString(),
-      } satisfies PredictResponse,
-      error: null,
-    })
+    const responseData: PredictResponse = {
+      targetMonth,
+      predictedTotalExpense: Number(parsed.predictedTotalExpense ?? 0),
+      predictedTotalIncome:  Number(parsed.predictedTotalIncome  ?? 0),
+      predictedBalance:      Number(parsed.predictedBalance       ?? 0),
+      advice:                String(parsed.advice ?? ''),
+      categories,
+      generatedAt: new Date().toISOString(),
+    }
+
+    await setCachedAI(ctx.supabase, ctx.userId, 'predict', responseData)
+
+    res.status(200).json({ data: responseData, error: null, cached: false })
   } catch (err: any) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('❌ Error en la llamada a Gemini:', err)
