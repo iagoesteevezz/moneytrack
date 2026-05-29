@@ -60,8 +60,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const ctx = await requireAuth(req, res)
   if (!ctx) return
 
-  const apiKey = process.env['GEMINI_API_KEY']
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
+  console.log('[gemini] apiKey present:', !!apiKey)
   if (!apiKey) {
+    console.error('❌ ERROR CRÍTICO: No se encuentra GEMINI_API_KEY en las variables de entorno.')
     res.status(500).json({ data: null, error: { message: 'GEMINI_API_KEY not configured' } })
     return
   }
@@ -125,6 +127,7 @@ ${formattedHistory}
 
   try {
     const ai = new GoogleGenAI({ apiKey })
+    console.log('[gemini] SDK initialized, calling generateContent...')
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash',
@@ -164,8 +167,9 @@ ${formattedHistory}
       } satisfies PredictResponse,
       error: null,
     })
-  } catch (err) {
+  } catch (err: any) {
     const message = err instanceof Error ? err.message : String(err)
+    console.error('❌ Error en la llamada a Gemini:', err)
     console.error('[ai/predict] Gemini error:', message)
     res.status(500).json({ data: null, error: { message: `AI error: ${message}` } })
   }
