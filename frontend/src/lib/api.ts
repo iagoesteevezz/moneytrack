@@ -1,6 +1,10 @@
 /**
  * Typed API client — wraps fetch with auth headers and error handling.
  * All functions throw on network/API errors so React Query can catch them.
+ *
+ * Strategy:
+ *  - AI endpoints → backend (/api/ai/*) to hide the Gemini API key
+ *  - Everything else → Supabase client directly (RLS enforces ownership)
  */
 import { supabase } from './supabase'
 
@@ -168,7 +172,7 @@ export const api = {
       const qs = params.size ? `?${params}` : ''
       return request<Transaction[]>(`/api/transactions${qs}`)
     },
-    get: (id: string) => request<Transaction>(`/api/transactions/${id}`),
+
     create: (body: {
       type: TransactionType
       amount: number
@@ -176,17 +180,45 @@ export const api = {
       description?: string
       date?: string
     }) => request<Transaction>('/api/transactions', { method: 'POST', body: JSON.stringify(body) }),
-    update: (id: string, body: Partial<{
-      type: TransactionType
-      amount: number
-      categoryId: string | null
-      description: string | null
-      date: string
-    }>) => request<Transaction>(`/api/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-    delete: async (id: string) => fetch(`/api/transactions/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: await getAuthHeader() },
-    }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`) }),
+
+    /** Direct Supabase — no backend hop needed, RLS enforces ownership */
+    update: async (
+      id: string,
+      body: Partial<{
+        type: TransactionType
+        amount: number
+        categoryId: string | null
+        description: string | null
+        date: string
+      }>,
+    ): Promise<Transaction> => {
+      const updates: Record<string, unknown> = {}
+      if (body.type        !== undefined) updates['type']        = body.type
+      if (body.amount      !== undefined) updates['amount']      = body.amount
+      if (body.categoryId  !== undefined) updates['category_id'] = body.categoryId
+      if (body.description !== undefined) updates['description'] = body.description
+      if (body.date        !== undefined) updates['date']        = body.date
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('id', id)
+        .select('*, category:categories(id, name, icon, color)')
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapDbTransaction(data)
+    },
+
+    /** Direct Supabase — no backend hop needed, RLS enforces ownership */
+    delete: async (id: string): Promise<void> => {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw new Error(error.message)
+    },
   },
 
   categories: {
@@ -222,4 +254,24 @@ export const api = {
     insights: () => request<InsightsResponse>('/api/ai/insights'),
     predict:  () => request<PredictResponse>('/api/ai/predict'),
   },
+}
+
+// ── Internal mapper ───────────────────────────────────────────
+// Converts the raw Supabase row (snake_case) to the typed Transaction shape.
+
+function mapDbTransaction(row: any): Transaction {
+  return {
+    id:          row.id,
+    userId:      row.user_id,
+    categoryId:  row.category_id ?? null,
+    category:    row.category
+      ? { id: row.category.id, name: row.category.name, icon: row.category.icon ?? null, color: row.category.color ?? null }
+      : undefined,
+    type:        row.type,
+    amount:      Number(row.amount),
+    description: row.description ?? null,
+    date:        row.date,
+    createdAt:   row.created_at,
+    updatedAt:   row.updated_at,
+  }
 }
