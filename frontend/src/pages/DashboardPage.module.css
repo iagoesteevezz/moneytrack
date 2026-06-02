@@ -1,6 +1,6 @@
 .page {
   padding: 28px 28px 40px;
-  max-width: 1100px;
+  max-width: 1440px;
 }
 
 /* ── Header ───────────────────────────────────────────────── */
@@ -277,10 +277,11 @@
 
 .amountIncome  { color: var(--color-income); }
 .amountExpense { color: var(--color-text-primary); }
-/* ── Two-column layout ────────────────────────────────────── */
+/* ── Three-column layout ──────────────────────────────────── */
+/* [main content] [AI + quick-add] [media carousel]           */
 .twoCol {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 280px 200px;
   gap: 16px;
   align-items: start;
 }
@@ -289,12 +290,29 @@
   min-width: 0;
 }
 
+/* AI + quick-add column — sticky so it stays visible on scroll */
 .sideCol {
   display: flex;
   flex-direction: column;
   gap: 14px;
   position: sticky;
   top: 24px;
+}
+
+/* Carousel column — stretches to match sideCol height */
+.carouselCol {
+  position: sticky;
+  top: 24px;
+  /* Fill the viewport height minus the top offset so the
+     carousel looks tall without an explicit fixed height */
+  height: calc(100vh - 100px);
+  max-height: 700px;
+}
+
+/* Hide both sidebars on narrower screens */
+@media (max-width: 1280px) {
+  .twoCol { grid-template-columns: 1fr 280px; }
+  .carouselCol { display: none; }
 }
 
 @media (max-width: 1100px) {

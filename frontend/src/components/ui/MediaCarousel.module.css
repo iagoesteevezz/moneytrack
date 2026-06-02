@@ -1,0 +1,60 @@
+/* ── MediaCarousel ────────────────────────────────────────────
+   Two vertical infinite-scroll columns, one scrolling down
+   and the other scrolling up.
+   ─────────────────────────────────────────────────────────── */
+
+.wrap {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+  /* Height is controlled by the parent (sideCol stretching) */
+  height: 100%;
+  min-height: 320px;
+  border-radius: var(--radius-lg);
+}
+
+/* Each column is a flex column that animates infinitely */
+.col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* contain the animation so it doesn't affect siblings */
+  will-change: transform;
+}
+
+/* Column 1: scrolls downward (translateY -50% → 0) */
+.colDown {
+  animation: scrollDown 20s linear infinite;
+}
+
+/* Column 2: scrolls upward (translateY 0 → -50%) */
+.colUp {
+  animation: scrollUp 22s linear infinite; /* slightly different speed = more natural */
+}
+
+@keyframes scrollDown {
+  from { transform: translateY(-50%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes scrollUp {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+
+/* Each image */
+.img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 2px solid color-mix(in srgb, var(--color-brand) 18%, var(--color-border));
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Pause on hover for UX */
+.wrap:hover .col {
+  animation-play-state: paused;
+}

@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
+import { MediaCarousel } from '@/components/ui/MediaCarousel'
 import styles from './DashboardPage.module.css'
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -339,11 +340,16 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Right sidebar ── */}
+        {/* ── Right sidebar: AI + quick-add ── */}
         <aside className={styles.sideCol}>
           <AIInsightsCard />
           <QuickAddCard />
         </aside>
+
+        {/* ── Far-right: media carousel ── */}
+        <div className={styles.carouselCol}>
+          <MediaCarousel />
+        </div>
       </div>
     </div>
   )
