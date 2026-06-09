@@ -7,6 +7,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 
 export type TransactionType = 'income' | 'expense'
 export type CategoryType = 'income' | 'expense' | 'both'
+export type Priority = 'alta' | 'media' | 'baja'
 
 // ── Raw DB rows ──────────────────────────────────────────────
 
@@ -123,6 +124,45 @@ export interface ApiError {
 }
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiError
+
+// ── Shopping List ────────────────────────────────────────────
+
+export interface DbShoppingItem {
+  id: string
+  user_id: string
+  item: string
+  priority: Priority
+  category: string | null
+  is_purchased: boolean
+  estimated_price: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ShoppingItem {
+  id: string
+  userId: string
+  item: string
+  priority: Priority
+  category: string | null
+  isPurchased: boolean
+  estimatedPrice: number | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateShoppingItemPayload {
+  item: string
+  priority?: Priority
+  category?: string
+  is_purchased?: boolean
+  estimated_price?: number | null
+  notes?: string | null
+}
+
+export type UpdateShoppingItemPayload = Partial<CreateShoppingItemPayload>
 
 // ── Stats / dashboard types ──────────────────────────────────
 

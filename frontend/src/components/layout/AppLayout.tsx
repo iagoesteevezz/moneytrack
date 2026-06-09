@@ -4,10 +4,11 @@ import { Icon } from '@/components/ui/Icon'
 import styles from './AppLayout.module.css'
 
 const NAV = [
-  { to: '/',             label: 'Resumen',         icon: 'dashboard'      as const },
-  { to: '/transactions', label: 'Movimientos',      icon: 'transactions'   as const },
-  { to: '/budgets',      label: 'Presupuestos',     icon: 'target'         as const },
-  { to: '/insights',     label: 'Análisis IA',      icon: 'sparkle'        as const },
+  { to: '/',             label: 'Resumen',           icon: 'dashboard'      as const },
+  { to: '/transactions', label: 'Movimientos',        icon: 'transactions'   as const },
+  { to: '/budgets',      label: 'Presupuestos',       icon: 'target'         as const },
+  { to: '/shopping',     label: 'Lista de Compras',   icon: 'cart'           as const },
+  { to: '/insights',     label: 'Análisis IA',        icon: 'sparkle'        as const },
 ]
 
 const BOTTOM_NAV = [
@@ -76,6 +77,7 @@ export function AppLayout() {
               <span className={styles.userEmail}>{user?.email}</span>
             </div>
             <button
+              type="button"
               className={styles.logoutBtn}
               onClick={handleSignOut}
               title="Cerrar sesión"

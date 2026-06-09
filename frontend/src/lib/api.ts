@@ -36,6 +36,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export type TransactionType = 'income' | 'expense'
 export type CategoryType = 'income' | 'expense' | 'both'
+export type Priority = 'alta' | 'media' | 'baja'
+
+export interface ShoppingItem {
+  id: string
+  userId: string
+  item: string
+  priority: Priority
+  category: string | null
+  isPurchased: boolean
+  estimatedPrice: number | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
 
 export interface Category {
   id: string
@@ -254,10 +268,94 @@ export const api = {
     insights: () => request<InsightsResponse>('/api/ai/insights'),
     predict:  () => request<PredictResponse>('/api/ai/predict'),
   },
+
+  shoppingList: {
+    list: async (): Promise<ShoppingItem[]> => {
+      const { data, error } = await supabase
+        .from('shopping_list')
+        .select('*')
+        .order('is_purchased', { ascending: true })
+        .order('created_at', { ascending: false })
+      if (error) throw new Error(error.message)
+      return (data as any[]).map(mapDbShoppingItem)
+    },
+
+    create: async (body: {
+      item: string
+      priority?: Priority
+      category?: string
+      estimatedPrice?: number | null
+      notes?: string | null
+    }): Promise<ShoppingItem> => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+      const { data, error } = await supabase
+        .from('shopping_list')
+        .insert({
+          user_id:         session.user.id,
+          item:            body.item,
+          priority:        body.priority ?? 'media',
+          category:        body.category ?? null,
+          estimated_price: body.estimatedPrice ?? null,
+          notes:           body.notes ?? null,
+        })
+        .select('*')
+        .single()
+      if (error) throw new Error(error.message)
+      return mapDbShoppingItem(data)
+    },
+
+    update: async (
+      id: string,
+      body: Partial<{
+        item: string
+        priority: Priority
+        category: string | null
+        isPurchased: boolean
+        estimatedPrice: number | null
+        notes: string | null
+      }>
+    ): Promise<ShoppingItem> => {
+      const updates: Record<string, unknown> = {}
+      if (body.item            !== undefined) updates['item']            = body.item
+      if (body.priority        !== undefined) updates['priority']        = body.priority
+      if (body.category        !== undefined) updates['category']        = body.category
+      if (body.isPurchased     !== undefined) updates['is_purchased']    = body.isPurchased
+      if (body.estimatedPrice  !== undefined) updates['estimated_price'] = body.estimatedPrice
+      if (body.notes           !== undefined) updates['notes']           = body.notes
+      const { data, error } = await supabase
+        .from('shopping_list')
+        .update(updates)
+        .eq('id', id)
+        .select('*')
+        .single()
+      if (error) throw new Error(error.message)
+      return mapDbShoppingItem(data)
+    },
+
+    delete: async (id: string): Promise<void> => {
+      const { error } = await supabase.from('shopping_list').delete().eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+  },
 }
 
-// ── Internal mapper ───────────────────────────────────────────
-// Converts the raw Supabase row (snake_case) to the typed Transaction shape.
+// ── Internal mappers ──────────────────────────────────────────
+
+function mapDbShoppingItem(row: any): ShoppingItem {
+  return {
+    id:             row.id,
+    userId:         row.user_id,
+    item:           row.item,
+    priority:       row.priority as Priority,
+    category:       row.category ?? null,
+    isPurchased:    row.is_purchased,
+    estimatedPrice: row.estimated_price != null ? Number(row.estimated_price) : null,
+    notes:          row.notes ?? null,
+    createdAt:      row.created_at,
+    updatedAt:      row.updated_at,
+  }
+}
 
 function mapDbTransaction(row: any): Transaction {
   return {
