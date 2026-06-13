@@ -6,6 +6,7 @@ import { api, type EventWithStats, type Event } from '@/lib/api'
 import { eventSchema } from '@/lib/validations/event'
 import { tripDays, fmtDateRange, todayISO } from '@/lib/dates'
 import { Icon } from '@/components/ui/Icon'
+import { Stagger, StaggerItem } from '@/components/ui/Motion'
 import styles from './EventsPage.module.css'
 
 function fmt(n: number) {
@@ -22,7 +23,7 @@ function EventCard({ event, onOpen, onEdit, onDelete }: {
 }) {
   const perDay = event.totalSpent / tripDays(event.startDate, event.endDate)
   return (
-    <div className={styles.card} onClick={() => onOpen(event.id)}>
+    <div className={`${styles.card} glow-hover`} onClick={() => onOpen(event.id)}>
       <div className={styles.cardHeader}>
         <div className={styles.cardLeft}>
           <div className={styles.cardIconWrap}>
@@ -235,17 +236,18 @@ export function EventsPage() {
 
       {!isLoading && events.length >= 2 && <ComparisonChart events={events} />}
 
-      <div className={styles.grid}>
+      <Stagger className={styles.grid}>
         {events.map((e) => (
-          <EventCard
-            key={e.id}
-            event={e}
-            onOpen={(id) => navigate(`/events/${id}`)}
-            onEdit={(ev) => { setEditing(ev); setModalOpen(true) }}
-            onDelete={handleDelete}
-          />
+          <StaggerItem key={e.id}>
+            <EventCard
+              event={e}
+              onOpen={(id) => navigate(`/events/${id}`)}
+              onEdit={(ev) => { setEditing(ev); setModalOpen(true) }}
+              onDelete={handleDelete}
+            />
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
 
       {modalOpen && <EventModal event={editing} onClose={closeModal} />}
     </div>

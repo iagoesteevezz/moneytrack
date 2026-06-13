@@ -8,6 +8,7 @@ import {
 import { api } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
 import { MediaCarousel } from '@/components/ui/MediaCarousel'
+import { Stagger, StaggerItem, AnimatedNumber } from '@/components/ui/Motion'
 import styles from './DashboardPage.module.css'
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -41,18 +42,22 @@ function prevMonths(n: number): string[] {
 interface MetricCardProps {
   label: string
   value: string
+  count?: number
+  format?: (n: number) => string
   sub?: string
   trend?: number
   accent?: string
 }
 
-function MetricCard({ label, value, sub, trend, accent }: MetricCardProps) {
+function MetricCard({ label, value, count, format, sub, trend, accent }: MetricCardProps) {
   const trendUp   = trend !== undefined && trend > 0
   const trendDown = trend !== undefined && trend < 0
   return (
-    <div className={styles.metricCard}>
+    <div className={`${styles.metricCard} glow-hover`}>
       <span className={styles.metricLabel}>{label}</span>
-      <span className={styles.metricValue} style={accent ? { color: accent } : undefined}>{value}</span>
+      <span className={styles.metricValue} style={accent ? { color: accent } : undefined}>
+        {count !== undefined && format ? <AnimatedNumber value={count} format={format} /> : value}
+      </span>
       <div className={styles.metricFooter}>
         {trend !== undefined && (
           <span className={`${styles.metricTrend} ${trendUp ? styles.trendUp : trendDown ? styles.trendDown : styles.trendFlat}`}>
@@ -250,12 +255,20 @@ export function DashboardPage() {
         {/* ── Main column ── */}
         <div className={styles.mainCol}>
           {/* Metric cards */}
-          <div className={styles.metricsRow}>
-            <MetricCard label="Balance" value={stats ? fmt(stats.summary.balance) : '—'} accent={stats && stats.summary.balance >= 0 ? 'var(--color-income)' : 'var(--color-expense)'} />
-            <MetricCard label="Ingresos" value={stats ? fmt(stats.summary.totalIncome) : '—'} trend={incomeTrend()} accent="var(--color-income)" />
-            <MetricCard label="Gastos" value={stats ? fmt(stats.summary.totalExpense) : '—'} trend={expenseTrend()} accent="var(--color-expense)" />
-            <MetricCard label="Tasa de ahorro" value={stats ? `${savingsRate.toFixed(1)}%` : '—'} sub="del total de ingresos" accent={savingsRate >= 20 ? 'var(--color-income)' : savingsRate >= 0 ? 'var(--color-warning)' : 'var(--color-expense)'} />
-          </div>
+          <Stagger className={styles.metricsRow}>
+            <StaggerItem>
+              <MetricCard label="Balance" value="—" count={stats ? stats.summary.balance : undefined} format={(n) => fmt(n)} accent={stats && stats.summary.balance >= 0 ? 'var(--color-income)' : 'var(--color-expense)'} />
+            </StaggerItem>
+            <StaggerItem>
+              <MetricCard label="Ingresos" value="—" count={stats ? stats.summary.totalIncome : undefined} format={(n) => fmt(n)} trend={incomeTrend()} accent="var(--color-income)" />
+            </StaggerItem>
+            <StaggerItem>
+              <MetricCard label="Gastos" value="—" count={stats ? stats.summary.totalExpense : undefined} format={(n) => fmt(n)} trend={expenseTrend()} accent="var(--color-expense)" />
+            </StaggerItem>
+            <StaggerItem>
+              <MetricCard label="Tasa de ahorro" value="—" count={stats ? savingsRate : undefined} format={(n) => `${n.toFixed(1)}%`} sub="del total de ingresos" accent={savingsRate >= 20 ? 'var(--color-income)' : savingsRate >= 0 ? 'var(--color-warning)' : 'var(--color-expense)'} />
+            </StaggerItem>
+          </Stagger>
 
           {/* Alert banner */}
           {warningBudgets.length > 0 && (
@@ -272,7 +285,7 @@ export function DashboardPage() {
 
           {/* Charts */}
           <div className={styles.chartsRow}>
-            <div className={styles.chartCard}>
+            <div className={`${styles.chartCard} glow-hover`}>
               <div className={styles.chartCardHeader}>
                 <span className={styles.chartCardTitle}>Evolución 6 meses</span>
                 <div className={styles.legendRow}>
@@ -302,7 +315,7 @@ export function DashboardPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className={styles.chartCard}>
+            <div className={`${styles.chartCard} glow-hover`}>
               <div className={styles.chartCardHeader}>
                 <span className={styles.chartCardTitle}>Top categorías de gasto</span>
               </div>
