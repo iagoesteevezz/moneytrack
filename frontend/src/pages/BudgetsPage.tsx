@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type BudgetWithProgress, type Category } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
+import { Stagger, StaggerItem } from '@/components/ui/Motion'
 import styles from './BudgetsPage.module.css'
 
 function fmt(n: number) {
@@ -46,7 +47,7 @@ function BudgetCard({
   const isWarning = pct >= 80 && !isOver
 
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} glow-hover`}>
       <div className={styles.cardHeader}>
         <div className={styles.cardLeft}>
           <div className={styles.cardIconWrap} style={{ background: `color-mix(in srgb, ${color} 12%, transparent)` }}>
@@ -130,8 +131,8 @@ function BudgetModal({
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+    <div className={`${styles.overlay} overlayIn`} onClick={onClose}>
+      <div className={`${styles.modal} modalIn`} onClick={e => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{isEditing ? 'Editar presupuesto' : 'Nuevo presupuesto'}</h2>
           <button className={styles.iconBtn} onClick={onClose}><Icon name="close" size={16} /></button>
@@ -266,16 +267,17 @@ export function BudgetsPage() {
         </div>
       )}
 
-      <div className={styles.grid}>
+      <Stagger className={styles.grid}>
         {budgets.map(b => (
-          <BudgetCard
-            key={b.id}
-            budget={b}
-            onEdit={openEdit}
-            onDelete={id => deleteMutation.mutate(id)}
-          />
+          <StaggerItem key={b.id}>
+            <BudgetCard
+              budget={b}
+              onEdit={openEdit}
+              onDelete={id => deleteMutation.mutate(id)}
+            />
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
 
       {modalOpen && (
         <BudgetModal budget={editing} categories={categories} onClose={closeModal} />

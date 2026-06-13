@@ -9,6 +9,7 @@ import { api } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
 import { MediaCarousel } from '@/components/ui/MediaCarousel'
 import { Stagger, StaggerItem, AnimatedNumber } from '@/components/ui/Motion'
+import { useSettings } from '@/context/SettingsContext'
 import styles from './DashboardPage.module.css'
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -176,6 +177,7 @@ function QuickAddCard() {
 // ── Main page ─────────────────────────────────────────────────
 
 export function DashboardPage() {
+  const { showCarousel } = useSettings()
   const [month, setMonth] = useState(currentMonth())
   const months6 = prevMonths(6)
 
@@ -359,10 +361,12 @@ export function DashboardPage() {
           <QuickAddCard />
         </aside>
 
-        {/* ── Far-right: media carousel ── */}
-        <div className={styles.carouselCol}>
-          <MediaCarousel />
-        </div>
+        {/* ── Far-right: media carousel (toggle en Ajustes) ── */}
+        {showCarousel && (
+          <div className={styles.carouselCol}>
+            <MediaCarousel />
+          </div>
+        )}
       </div>
     </div>
   )

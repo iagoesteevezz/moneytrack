@@ -2,7 +2,9 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
+import { useSettings, type Theme } from '@/context/SettingsContext'
 import { Icon } from '@/components/ui/Icon'
+import { FadeIn } from '@/components/ui/Motion'
 import styles from './ProfilePage.module.css'
 
 const CURRENCIES = [
@@ -16,8 +18,14 @@ const CURRENCIES = [
   { code: 'BRL', label: 'R$ Real brasileño' },
 ]
 
+const THEMES: { value: Theme; label: string; icon: 'sparkle' | 'wallet' }[] = [
+  { value: 'dark',  label: 'Oscuro', icon: 'sparkle' },
+  { value: 'light', label: 'Claro',  icon: 'wallet' },
+]
+
 export function ProfilePage() {
   const { user } = useAuth()
+  const { theme, setTheme, showCarousel, setShowCarousel } = useSettings()
   const qc = useQueryClient()
 
   const { data: profile, isLoading } = useQuery({
@@ -57,7 +65,7 @@ export function ProfilePage() {
       {isLoading ? (
         <p className={styles.empty}>Cargando...</p>
       ) : (
-        <div className={styles.card}>
+        <FadeIn className={styles.card}>
           {/* ── Cuenta (read-only) ── */}
           <section className={styles.section}>
             <h3 className={styles.sectionTitle}>Cuenta</h3>
@@ -104,6 +112,49 @@ export function ProfilePage() {
 
           <hr className={styles.divider} />
 
+          {/* ── Apariencia ── */}
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Apariencia</h3>
+
+            <div className={styles.settingRow}>
+              <div className={styles.settingInfo}>
+                <span className={styles.settingLabel}>Tema</span>
+                <span className={styles.settingHint}>Elige entre modo oscuro o claro</span>
+              </div>
+              <div className={styles.themeToggle}>
+                {THEMES.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    className={`${styles.themeOption} ${theme === t.value ? styles.themeOptionActive : ''}`}
+                    onClick={() => setTheme(t.value)}
+                  >
+                    <Icon name={t.icon} size={14} />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.settingRow}>
+              <div className={styles.settingInfo}>
+                <span className={styles.settingLabel}>Carrusel de fotos</span>
+                <span className={styles.settingHint}>Muestra el carrusel en el panel de resumen</span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showCarousel}
+                className={`${styles.switch} ${showCarousel ? styles.switchOn : ''}`}
+                onClick={() => setShowCarousel(!showCarousel)}
+              >
+                <span className={styles.switchKnob} />
+              </button>
+            </div>
+          </section>
+
+          <hr className={styles.divider} />
+
           {/* ── Zona de peligro ── */}
           <section className={styles.section}>
             <h3 className={`${styles.sectionTitle} ${styles.danger}`}>Zona de peligro</h3>
@@ -111,7 +162,7 @@ export function ProfilePage() {
               Para eliminar tu cuenta contacta con soporte. Esta acción es irreversible.
             </p>
           </section>
-        </div>
+        </FadeIn>
       )}
     </div>
   )

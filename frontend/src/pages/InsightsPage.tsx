@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api, type Insight, type CategoryPrediction } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
+import { Stagger, StaggerItem } from '@/components/ui/Motion'
 import styles from './InsightsPage.module.css'
 
 function fmt(n: number) {
@@ -33,9 +34,9 @@ const IMPACT_LABEL: Record<Insight['impact'], string> = {
 
 const TYPE_BG: Record<Insight['type'], string> = {
   anomaly:    'var(--color-expense-bg)',
-  trend:      '#eff6ff',
-  suggestion: '#f0fdf4',
-  positive:   '#f0fdf4',
+  trend:      'var(--color-brand-light)',
+  suggestion: 'var(--color-income-bg)',
+  positive:   'var(--color-income-bg)',
 }
 
 const TYPE_ICON_COLOR: Record<Insight['type'], string> = {
@@ -181,11 +182,11 @@ export function InsightsPage() {
             {insights.data.insights.length === 0
               ? <EmptyState message={insights.data.summary} />
               : (
-                <div className={styles.insightList}>
+                <Stagger className={styles.insightList}>
                   {insights.data.insights.map((ins, i) => (
-                    <InsightCard key={i} insight={ins} />
+                    <StaggerItem key={i}><InsightCard insight={ins} /></StaggerItem>
                   ))}
-                </div>
+                </Stagger>
               )
             }
           </>
@@ -238,12 +239,12 @@ export function InsightsPage() {
               </div>
             )}
 
-            <div className={styles.predList}>
+            <Stagger className={styles.predList}>
               {[...predict.data.categories]
                 .sort((a, b) => b.predictedAmount - a.predictedAmount)
-                .map((p, i) => <PredictionRow key={i} p={p} />)
+                .map((p, i) => <StaggerItem key={i}><PredictionRow p={p} /></StaggerItem>)
               }
-            </div>
+            </Stagger>
           </>
         )}
       </section>

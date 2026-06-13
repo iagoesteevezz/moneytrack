@@ -21,7 +21,7 @@ export function LoginPage() {
 
   return (
     <div className={styles.wrapper}>
-      <div className={styles.card}>
+      <div className={`${styles.card} modalIn`}>
         {/* Brand */}
         <div className={styles.brand}>
           <div className={styles.brandIcon}>

@@ -56,8 +56,8 @@ function PurchaseModal({ item, onRegister, onJustMark, onCancel, isLoading }: {
   isLoading: boolean
 }) {
   return (
-    <div className={styles.overlay} onClick={onCancel}>
-      <div className={`${styles.modal} ${styles.modalConfirm}`} onClick={e => e.stopPropagation()}>
+    <div className={`${styles.overlay} overlayIn`} onClick={onCancel}>
+      <div className={`${styles.modal} ${styles.modalConfirm} modalIn`} onClick={e => e.stopPropagation()}>
         <div className={styles.confirmEmoji}>🛒</div>
         <h2 className={styles.confirmTitle}>¿Registrar como movimiento?</h2>
         <p className={styles.confirmDesc}>
@@ -139,8 +139,8 @@ function ItemFormModal({ editItem, onClose }: {
   })
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+    <div className={`${styles.overlay} overlayIn`} onClick={onClose}>
+      <div className={`${styles.modal} modalIn`} onClick={e => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{isEditing ? 'Editar artículo' : 'Nuevo artículo'}</h2>
           <button type="button" className={styles.iconBtn} onClick={onClose}>

@@ -140,8 +140,8 @@ function EventModal({ event, onClose }: { event: Event | null; onClose: () => vo
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div className={`${styles.overlay} overlayIn`} onClick={onClose}>
+      <div className={`${styles.modal} modalIn`} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{isEditing ? 'Editar viaje' : 'Nuevo viaje'}</h2>
           <button className={styles.iconBtn} onClick={onClose}><Icon name="close" size={16} /></button>

@@ -5,6 +5,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 import { api, type Transaction } from '@/lib/api'
 import { Icon } from '@/components/ui/Icon'
 import { tripDays, fmtDate, isWithinRange } from '@/lib/dates'
+import { Stagger, StaggerItem, AnimatedNumber } from '@/components/ui/Motion'
 import styles from './EventDetailPage.module.css'
 
 function fmt(n: number) {
@@ -81,8 +82,8 @@ function LinkModal({ eventId, startDate, endDate, onClose }: {
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={`${styles.modal} ${styles.modalWide}`} onClick={(e) => e.stopPropagation()}>
+    <div className={`${styles.overlay} overlayIn`} onClick={onClose}>
+      <div className={`${styles.modal} ${styles.modalWide} modalIn`} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>Vincular movimientos</h2>
           <button className={styles.iconBtn} onClick={onClose}><Icon name="close" size={16} /></button>
@@ -196,20 +197,20 @@ export function EventDetailPage() {
       </div>
 
       {/* ── FASE 4 · Panel de estadísticas ── */}
-      <div className={styles.statsRow}>
-        <div className={styles.statCard}>
+      <Stagger className={styles.statsRow}>
+        <StaggerItem className={`${styles.statCard} glow-hover`}>
           <span className={styles.statLabel}>Gasto total</span>
-          <span className={styles.statValueBig}>{fmt(totalSpent)}</span>
-        </div>
-        <div className={styles.statCard}>
+          <span className={styles.statValueBig}><AnimatedNumber value={totalSpent} format={(n) => fmt(n)} /></span>
+        </StaggerItem>
+        <StaggerItem className={`${styles.statCard} glow-hover`}>
           <span className={styles.statLabel}>Gasto medio / día</span>
-          <span className={styles.statValueBig}>{fmt(perDay)}</span>
-        </div>
-        <div className={styles.statCard}>
+          <span className={styles.statValueBig}><AnimatedNumber value={perDay} format={(n) => fmt(n)} /></span>
+        </StaggerItem>
+        <StaggerItem className={`${styles.statCard} glow-hover`}>
           <span className={styles.statLabel}>Movimientos</span>
-          <span className={styles.statValueBig}>{txs.length}</span>
-        </div>
-      </div>
+          <span className={styles.statValueBig}><AnimatedNumber value={txs.length} format={(n) => String(Math.round(n))} /></span>
+        </StaggerItem>
+      </Stagger>
 
       <div className={styles.detailGrid}>
         {/* Gráfico circular por categoría */}
