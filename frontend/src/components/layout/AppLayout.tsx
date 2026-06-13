@@ -7,6 +7,7 @@ const NAV = [
   { to: '/',             label: 'Resumen',         icon: 'dashboard'      as const },
   { to: '/transactions', label: 'Movimientos',      icon: 'transactions'   as const },
   { to: '/budgets',      label: 'Presupuestos',     icon: 'target'         as const },
+  { to: '/events',       label: 'Viajes',           icon: 'calendar'       as const },
   { to: '/insights',     label: 'Análisis IA',      icon: 'sparkle'        as const },
 ]
 

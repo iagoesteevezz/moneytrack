@@ -7,6 +7,7 @@
  *  - Everything else → Supabase client directly (RLS enforces ownership)
  */
 import { supabase } from './supabase'
+import { eventSchema, linkTransactionsSchema, type EventInput } from './validations/event'
 
 async function getAuthHeader(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -57,6 +58,7 @@ export interface Transaction {
   amount: number
   description: string | null
   date: string
+  eventId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -106,6 +108,25 @@ export interface BudgetWithProgress {
   period: 'monthly'
   createdAt: string
   updatedAt: string
+}
+
+// ── Event types ───────────────────────────────────────────────
+
+export interface Event {
+  id: string
+  userId: string
+  name: string
+  destination: string | null
+  startDate: string          // YYYY-MM-DD
+  endDate: string | null     // YYYY-MM-DD | null (viaje en curso)
+  createdAt: string
+  updatedAt: string
+}
+
+/** Evento enriquecido con métricas calculadas en cliente (para las tarjetas). */
+export interface EventWithStats extends Event {
+  totalSpent: number
+  transactionCount: number
 }
 
 // ── AI types ─────────────────────────────────────────────────
@@ -254,6 +275,139 @@ export const api = {
     insights: () => request<InsightsResponse>('/api/ai/insights'),
     predict:  () => request<PredictResponse>('/api/ai/predict'),
   },
+
+  // ── Events / Viajes ─────────────────────────────────────────
+  // Acceso directo a Supabase: RLS garantiza la propiedad. Zod sanea
+  // la entrada en el cliente antes de cada mutación.
+  events: {
+    /** Lista de viajes con gasto total y nº de movimientos (2 queries, agregado en cliente). */
+    listWithStats: async (): Promise<EventWithStats[]> => {
+      const { data: events, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('start_date', { ascending: false })
+      if (error) throw new Error(error.message)
+
+      const ids = (events ?? []).map((e: any) => e.id)
+      if (ids.length === 0) return []
+
+      const { data: txs, error: txErr } = await supabase
+        .from('transactions')
+        .select('amount, event_id, type')
+        .in('event_id', ids)
+        .eq('type', 'expense')
+      if (txErr) throw new Error(txErr.message)
+
+      const agg = new Map<string, { total: number; count: number }>()
+      for (const t of (txs ?? []) as { amount: number; event_id: string }[]) {
+        const cur = agg.get(t.event_id) ?? { total: 0, count: 0 }
+        cur.total += Number(t.amount)
+        cur.count += 1
+        agg.set(t.event_id, cur)
+      }
+
+      return (events as any[]).map((e) => ({
+        ...mapDbEvent(e),
+        totalSpent:       agg.get(e.id)?.total ?? 0,
+        transactionCount: agg.get(e.id)?.count ?? 0,
+      }))
+    },
+
+    get: async (id: string): Promise<Event> => {
+      const { data, error } = await supabase.from('events').select('*').eq('id', id).single()
+      if (error) throw new Error(error.message)
+      return mapDbEvent(data)
+    },
+
+    create: async (input: EventInput): Promise<Event> => {
+      const v = eventSchema.parse(input)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No active session')
+
+      const { data, error } = await supabase
+        .from('events')
+        .insert({
+          user_id:     user.id,                 // RLS WITH CHECK exige que coincida con auth.uid()
+          name:        v.name,
+          destination: v.destination ?? null,
+          start_date:  v.startDate,
+          end_date:    v.endDate ?? null,
+        })
+        .select('*')
+        .single()
+      if (error) throw new Error(error.message)
+      return mapDbEvent(data)
+    },
+
+    update: async (id: string, input: EventInput): Promise<Event> => {
+      const v = eventSchema.parse(input)
+      const { data, error } = await supabase
+        .from('events')
+        .update({
+          name:        v.name,
+          destination: v.destination ?? null,
+          start_date:  v.startDate,
+          end_date:    v.endDate ?? null,
+        })
+        .eq('id', id)
+        .select('*')
+        .single()
+      if (error) throw new Error(error.message)
+      return mapDbEvent(data)
+    },
+
+    /** Borra el viaje. Por el FK ON DELETE SET NULL, los movimientos se conservan desagrupados. */
+    delete: async (id: string): Promise<void> => {
+      const { error } = await supabase.from('events').delete().eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+
+    /** Movimientos ya vinculados a un viaje. */
+    transactions: async (eventId: string): Promise<Transaction[]> => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, category:categories(id, name, icon, color)')
+        .eq('event_id', eventId)
+        .order('date', { ascending: false })
+      if (error) throw new Error(error.message)
+      return (data as any[]).map(mapDbTransaction)
+    },
+
+    /**
+     * Candidatos a vincular: movimientos del usuario sin viaje asignado.
+     * El modal los ordena para "sugerir" los que caen dentro del rango de fechas.
+     */
+    linkable: async (): Promise<Transaction[]> => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, category:categories(id, name, icon, color)')
+        .is('event_id', null)
+        .eq('type', 'expense')
+        .order('date', { ascending: false })
+        .limit(300)
+      if (error) throw new Error(error.message)
+      return (data as any[]).map(mapDbTransaction)
+    },
+
+    /** Vincula movimientos existentes al viaje (set event_id). */
+    link: async (eventId: string, transactionIds: string[]): Promise<void> => {
+      const { transactionIds: ids } = linkTransactionsSchema.parse({ transactionIds })
+      const { error } = await supabase
+        .from('transactions')
+        .update({ event_id: eventId })
+        .in('id', ids)
+      if (error) throw new Error(error.message)
+    },
+
+    /** Desvincula un movimiento del viaje (event_id → null). */
+    unlink: async (transactionId: string): Promise<void> => {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ event_id: null })
+        .eq('id', transactionId)
+      if (error) throw new Error(error.message)
+    },
+  },
 }
 
 // ── Internal mapper ───────────────────────────────────────────
@@ -271,6 +425,20 @@ function mapDbTransaction(row: any): Transaction {
     amount:      Number(row.amount),
     description: row.description ?? null,
     date:        row.date,
+    eventId:     row.event_id ?? null,
+    createdAt:   row.created_at,
+    updatedAt:   row.updated_at,
+  }
+}
+
+function mapDbEvent(row: any): Event {
+  return {
+    id:          row.id,
+    userId:      row.user_id,
+    name:        row.name,
+    destination: row.destination ?? null,
+    startDate:   row.start_date,
+    endDate:     row.end_date ?? null,
     createdAt:   row.created_at,
     updatedAt:   row.updated_at,
   }

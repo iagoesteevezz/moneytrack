@@ -34,10 +34,22 @@ export interface DbTransaction {
   id: string
   user_id: string
   category_id: string | null
+  event_id: string | null   // viaje/evento al que está vinculado (nullable)
   type: TransactionType
   amount: number
   description: string | null
   date: string           // ISO date string YYYY-MM-DD
+  created_at: string
+  updated_at: string
+}
+
+export interface DbEvent {
+  id: string
+  user_id: string
+  name: string
+  destination: string | null
+  start_date: string     // ISO date string YYYY-MM-DD
+  end_date: string | null
   created_at: string
   updated_at: string
 }
@@ -59,11 +71,23 @@ export interface Transaction {
   id: string
   userId: string
   categoryId: string | null
+  eventId: string | null
   category?: Pick<Category, 'id' | 'name' | 'icon' | 'color'>
   type: TransactionType
   amount: number
   description: string | null
   date: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Event {
+  id: string
+  userId: string
+  name: string
+  destination: string | null
+  startDate: Date
+  endDate: Date | null
   createdAt: Date
   updatedAt: Date
 }

@@ -12,6 +12,8 @@ import { TransactionsPage } from '@/pages/TransactionsPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { InsightsPage } from '@/pages/InsightsPage'
 import { BudgetsPage } from '@/pages/BudgetsPage'
+import { EventsPage } from '@/pages/EventsPage'
+import { EventDetailPage } from '@/pages/EventDetailPage'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -40,6 +42,8 @@ createRoot(root).render(
                 <Route path="/"             element={<DashboardPage />} />
                 <Route path="/transactions" element={<TransactionsPage />} />
                 <Route path="/budgets"      element={<BudgetsPage />} />
+                <Route path="/events"       element={<EventsPage />} />
+                <Route path="/events/:id"   element={<EventDetailPage />} />
                 <Route path="/insights"     element={<InsightsPage />} />
                 <Route path="/profile"      element={<ProfilePage />} />
               </Route>

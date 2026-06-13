@@ -110,9 +110,10 @@ function mapTransaction(row: DbTransaction & { category?: DbCategory | null }): 
     id: row.id,
     userId: row.user_id,
     categoryId: row.category_id,
-    category: row.category
-      ? { id: row.category.id, name: row.category.name, icon: row.category.icon, color: row.category.color }
-      : undefined,
+    eventId: row.event_id ?? null,
+    ...(row.category
+      ? { category: { id: row.category.id, name: row.category.name, icon: row.category.icon, color: row.category.color } }
+      : {}),
     type: row.type,
     amount: Number(row.amount),
     description: row.description,
